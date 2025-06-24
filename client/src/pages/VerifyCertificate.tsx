@@ -167,18 +167,20 @@ export default function VerifyCertificate() {
       </div>
 
       {/* Print Styles */}
-      <style jsx>{`
-        @media print {
-          @page {
-            margin: 0;
-            size: A4;
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @media print {
+            @page {
+              margin: 0;
+              size: A4;
+            }
+            body {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
           }
-          body {
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-        }
-      `}</style>
+        `
+      }} />
     </div>
   );
 }

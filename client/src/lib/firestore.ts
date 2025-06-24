@@ -42,13 +42,22 @@ export async function saveUserSettings(settings: InsertUserSettings): Promise<vo
 }
 
 export async function getUserSettings(uid: string): Promise<UserSettings | null> {
-  const userRef = doc(db, "userSettings", uid);
-  const userSnap = await getDoc(userRef);
-  
-  if (userSnap.exists()) {
-    return userSnap.data() as UserSettings;
+  if (!db) {
+    throw new Error('Firestore not initialized. Check Firebase configuration.');
   }
-  return null;
+  
+  try {
+    const userRef = doc(db, "userSettings", uid);
+    const userSnap = await getDoc(userRef);
+    
+    if (userSnap.exists()) {
+      return userSnap.data() as UserSettings;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting user settings:', error);
+    throw error;
+  }
 }
 
 // File Upload - No longer needed since we use data URLs
@@ -65,101 +74,153 @@ export async function uploadFile(file: File, path: string): Promise<string> {
 
 // Interns
 export async function addIntern(internData: InsertIntern): Promise<string> {
-  const id = uuidv4();
-  const certificateId = `CERT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+  if (!db) {
+    throw new Error('Firestore not initialized. Check Firebase configuration.');
+  }
   
-  const intern: Omit<Intern, 'createdAt'> = {
-    ...internData,
-    id,
-    certificateId,
-  };
+  try {
+    const id = uuidv4();
+    const certificateId = `CERT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    
+    const intern: Omit<Intern, 'createdAt'> = {
+      ...internData,
+      id,
+      certificateId,
+    };
 
-  await setDoc(doc(db, "interns", id), {
-    ...intern,
-    createdAt: new Date(),
-  });
+    await setDoc(doc(db, "interns", id), {
+      ...intern,
+      createdAt: new Date(),
+    });
 
-  // Create verification record
-  await setDoc(doc(db, "verifications", certificateId), {
-    certificateId,
-    internId: id,
-    verificationCount: 0,
-    lastVerified: new Date(),
-  });
+    // Create verification record
+    await setDoc(doc(db, "verifications", certificateId), {
+      certificateId,
+      internId: id,
+      verificationCount: 0,
+      lastVerified: new Date(),
+    });
 
-  return certificateId;
+    return certificateId;
+  } catch (error) {
+    console.error('Error adding intern:', error);
+    throw error;
+  }
 }
 
 export async function getInternsByUser(uid: string): Promise<Intern[]> {
-  const q = query(
-    collection(db, "interns"),
-    where("createdBy", "==", uid),
-    orderBy("createdAt", "desc")
-  );
+  if (!db) {
+    console.warn('Firestore not initialized, returning empty array');
+    return [];
+  }
   
-  const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => doc.data() as Intern);
+  try {
+    const q = query(
+      collection(db, "interns"),
+      where("createdBy", "==", uid),
+      orderBy("createdAt", "desc")
+    );
+    
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => doc.data() as Intern);
+  } catch (error) {
+    console.error('Error getting interns:', error);
+    return [];
+  }
 }
 
 export async function getInternByCertificateId(certificateId: string): Promise<{ intern: Intern; userSettings: UserSettings } | null> {
-  // Get verification record first
-  const verificationRef = doc(db, "verifications", certificateId);
-  const verificationSnap = await getDoc(verificationRef);
-  
-  if (!verificationSnap.exists()) {
-    return null;
+  if (!db) {
+    throw new Error('Firestore not initialized. Check Firebase configuration.');
   }
 
-  const verification = verificationSnap.data() as CertificateVerification;
-  
-  // Update verification count
-  await updateDoc(verificationRef, {
-    verificationCount: increment(1),
-    lastVerified: new Date(),
-  });
+  try {
+    // Get verification record first
+    const verificationRef = doc(db, "verifications", certificateId);
+    const verificationSnap = await getDoc(verificationRef);
+    
+    if (!verificationSnap.exists()) {
+      return null;
+    }
 
-  // Get intern data
-  const internRef = doc(db, "interns", verification.internId);
-  const internSnap = await getDoc(internRef);
-  
-  if (!internSnap.exists()) {
-    return null;
+    const verification = verificationSnap.data() as CertificateVerification;
+    
+    // Update verification count
+    await updateDoc(verificationRef, {
+      verificationCount: increment(1),
+      lastVerified: new Date(),
+    });
+
+    // Get intern data
+    const internRef = doc(db, "interns", verification.internId);
+    const internSnap = await getDoc(internRef);
+    
+    if (!internSnap.exists()) {
+      return null;
+    }
+
+    const intern = internSnap.data() as Intern;
+
+    // Get user settings for the creator
+    const userSettings = await getUserSettings(intern.createdBy);
+    
+    if (!userSettings) {
+      return null;
+    }
+
+    return { intern, userSettings };
+  } catch (error) {
+    console.error('Error getting intern by certificate ID:', error);
+    throw error;
   }
-
-  const intern = internSnap.data() as Intern;
-
-  // Get user settings for the creator
-  const userSettings = await getUserSettings(intern.createdBy);
-  
-  if (!userSettings) {
-    return null;
-  }
-
-  return { intern, userSettings };
 }
 
 // Dashboard Stats
 export async function getDashboardStats(uid: string) {
-  const interns = await getInternsByUser(uid);
-  
-  const totalInterns = interns.length;
-  const completedInterns = interns.filter(intern => intern.status === "completed").length;
-  const activeInternships = interns.filter(intern => intern.status === "active").length;
-
-  // Get total verifications (simplified - in real app you'd aggregate from all certificates)
-  let totalVerifications = 0;
-  for (const intern of interns) {
-    const verificationRef = doc(db, "verifications", intern.certificateId);
-    const verificationSnap = await getDoc(verificationRef);
-    if (verificationSnap.exists()) {
-      totalVerifications += verificationSnap.data().verificationCount || 0;
-    }
+  if (!db) {
+    console.warn('Firestore not initialized, returning default stats');
+    return {
+      totalInterns: 0,
+      generatedCerts: 0,
+      verifications: 0,
+      activeInternships: 0,
+    };
   }
 
-  return {
-    totalInterns,
-    generatedCerts: completedInterns,
-    verifications: totalVerifications,
-    activeInternships,
-  };
+  try {
+    const interns = await getInternsByUser(uid);
+    
+    const totalInterns = interns.length;
+    const completedInterns = interns.filter(intern => intern.status === "completed").length;
+    const activeInternships = interns.filter(intern => intern.status === "active").length;
+
+    // Get total verifications (simplified - in real app you'd aggregate from all certificates)
+    let totalVerifications = 0;
+    for (const intern of interns) {
+      try {
+        const verificationRef = doc(db, "verifications", intern.certificateId);
+        const verificationSnap = await getDoc(verificationRef);
+        if (verificationSnap.exists()) {
+          totalVerifications += verificationSnap.data().verificationCount || 0;
+        }
+      } catch (error) {
+        console.warn('Error getting verification count for intern:', intern.id);
+      }
+    }
+
+    return {
+      totalInterns,
+      generatedCerts: completedInterns,
+      verifications: totalVerifications,
+      activeInternships,
+    };
+  } catch (error) {
+    console.error('Error getting dashboard stats:', error);
+    return {
+      totalInterns: 0,
+      generatedCerts: 0,
+      verifications: 0,
+      activeInternships: 0,
+    };
+  }
 }

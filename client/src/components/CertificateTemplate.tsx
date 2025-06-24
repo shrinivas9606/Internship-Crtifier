@@ -27,6 +27,15 @@ export const CertificateTemplate = forwardRef<HTMLDivElement, CertificateTemplat
       return `${months} month${months !== 1 ? 's' : ''}`;
     };
 
+    const getTemplateColor = () => {
+      switch (userSettings.selectedTemplate) {
+        case "classic": return "#2563eb";
+        case "modern": return "#7c3aed";
+        case "elegant": return "#d97706";
+        default: return "#2563eb";
+      }
+    };
+
     const renderTemplate = () => {
       const commonElements = (
         <>
@@ -108,15 +117,6 @@ export const CertificateTemplate = forwardRef<HTMLDivElement, CertificateTemplat
           </div>
         </>
       );
-
-      const getTemplateColor = () => {
-        switch (userSettings.selectedTemplate) {
-          case "classic": return "#2563eb";
-          case "modern": return "#7c3aed";
-          case "elegant": return "#d97706";
-          default: return "#2563eb";
-        }
-      };
 
       switch (userSettings.selectedTemplate) {
         case "classic":
