@@ -51,20 +51,16 @@ export async function getUserSettings(uid: string): Promise<UserSettings | null>
   return null;
 }
 
-// File Upload
+// File Upload - No longer needed since we use data URLs
+// This function is kept for compatibility but not used
 export async function uploadFile(file: File, path: string): Promise<string> {
-  if (!storage) {
-    throw new Error('Firebase Storage not initialized. Check Firebase configuration.');
-  }
-  
-  try {
-    const fileRef = ref(storage, path);
-    await uploadBytes(fileRef, file);
-    return getDownloadURL(fileRef);
-  } catch (error) {
-    console.error('Error uploading file:', error);
-    throw error;
-  }
+  // Convert to data URL instead of uploading to Firebase Storage
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 // Interns

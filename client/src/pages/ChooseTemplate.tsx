@@ -62,18 +62,25 @@ export default function ChooseTemplate() {
 
     try {
       toast({
-        title: "Uploading...",
-        description: "Uploading files and saving settings",
+        title: "Processing...",
+        description: "Converting files to data URLs",
       });
 
-      // Upload files with better error handling
-      const uploadPromises = [
-        uploadFile(files.companyLogo, `logos/${user.uid}/${Date.now()}`),
-        uploadFile(files.supervisorSignature, `signatures/${user.uid}/supervisor/${Date.now()}`),
-        uploadFile(files.ceoSignature, `signatures/${user.uid}/ceo/${Date.now()}`),
-      ];
+      // Convert files to base64 data URLs (no Firebase Storage needed)
+      const convertToDataUrl = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      };
 
-      const [logoUrl, supervisorSigUrl, ceoSigUrl] = await Promise.all(uploadPromises);
+      const [logoUrl, supervisorSigUrl, ceoSigUrl] = await Promise.all([
+        convertToDataUrl(files.companyLogo),
+        convertToDataUrl(files.supervisorSignature),
+        convertToDataUrl(files.ceoSignature),
+      ]);
 
       // Save user settings
       const settings: InsertUserSettings = {
@@ -101,10 +108,10 @@ export default function ChooseTemplate() {
       console.error('Setup error:', error);
       
       let errorMessage = "Failed to complete setup";
-      if (error.code === 'storage/unauthorized') {
-        errorMessage = "Firebase Storage not configured. Please enable Firebase Storage in your project.";
-      } else if (error.code === 'permission-denied') {
-        errorMessage = "Firestore permissions error. Please check your Firestore rules.";
+      if (error.code === 'permission-denied') {
+        errorMessage = "Firestore permissions error. Please enable Firestore Database in test mode.";
+      } else if (error.message?.includes('Firestore')) {
+        errorMessage = "Firestore not configured. Please create a Firestore database in your Firebase project.";
       } else if (error.message) {
         errorMessage = error.message;
       }

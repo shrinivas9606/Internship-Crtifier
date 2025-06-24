@@ -99,6 +99,7 @@ This is a full-stack application designed to generate and verify digital interns
 - June 24, 2025: Initial setup complete
 - June 24, 2025: Added Firebase error handling and setup guidance
 - June 24, 2025: Fixed routing issues with wouter navigation
+- June 24, 2025: Removed Firebase Storage dependency (uses data URLs instead)
 
 ## User Preferences
 
