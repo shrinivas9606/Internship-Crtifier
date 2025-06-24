@@ -9,6 +9,7 @@ import Login from "@/pages/Login";
 import ChooseTemplate from "@/pages/ChooseTemplate";
 import Dashboard from "@/pages/Dashboard";
 import AddIntern from "@/pages/AddIntern";
+import BulkImport from "@/pages/BulkImport";
 import VerifyCertificate from "@/pages/VerifyCertificate";
 import FirebaseSetup from "@/pages/FirebaseSetup";
 import NotFound from "@/pages/not-found";
@@ -59,6 +60,14 @@ function AppRoutes() {
           user ? <ChooseTemplate /> : <Login />
         }>
           <AddIntern />
+        </AuthGuard>
+      </Route>
+
+      <Route path="/bulk-import">
+        <AuthGuard requireSetup fallback={
+          user ? <ChooseTemplate /> : <Login />
+        }>
+          <BulkImport />
         </AuthGuard>
       </Route>
 

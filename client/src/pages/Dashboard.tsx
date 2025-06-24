@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { getDashboardStats, getInternsByUser } from "@/lib/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Intern } from "@shared/schema";
+import { Plus, Upload } from "lucide-react";
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
+  const [, setLocation] = useLocation();
   const [stats, setStats] = useState({
     totalInterns: 0,
     generatedCerts: 0,
@@ -159,30 +161,31 @@ export default function Dashboard() {
               <CardContent className="p-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
                 <div className="space-y-3">
-                  <Link href="/add-intern">
-                    <Button className="w-full justify-between" variant="default">
-                      <div className="flex items-center">
-                        <i className="fas fa-user-plus mr-3"></i>
-                        <span>Add New Intern</span>
-                      </div>
-                      <i className="fas fa-arrow-right"></i>
-                    </Button>
-                  </Link>
-
-                  <Button className="w-full justify-between" variant="outline">
-                    <div className="flex items-center">
-                      <i className="fas fa-download mr-3"></i>
-                      <span>Bulk Export</span>
-                    </div>
-                    <i className="fas fa-arrow-right"></i>
+                  <Button 
+                    className="w-full justify-start" 
+                    variant="default"
+                    onClick={() => setLocation("/add-intern")}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add New Intern
                   </Button>
 
-                  <Button className="w-full justify-between" variant="outline">
-                    <div className="flex items-center">
-                      <i className="fas fa-cog mr-3"></i>
-                      <span>Template Settings</span>
-                    </div>
-                    <i className="fas fa-arrow-right"></i>
+                  <Button 
+                    className="w-full justify-start" 
+                    variant="outline"
+                    onClick={() => setLocation("/bulk-import")}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Bulk Import CSV
+                  </Button>
+
+                  <Button 
+                    className="w-full justify-start" 
+                    variant="outline"
+                    onClick={() => setLocation("/choose-template")}
+                  >
+                    <i className="fas fa-cog mr-2"></i>
+                    Template Settings
                   </Button>
                 </div>
               </CardContent>
