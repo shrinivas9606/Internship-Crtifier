@@ -32,8 +32,19 @@ export default function Dashboard() {
 
         setStats(dashboardStats);
         setRecentInterns(interns.slice(0, 5)); // Show only recent 5
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error loading dashboard data:", error);
+        
+        // Show helpful error message if Firestore is not configured
+        if (error.code === 'failed-precondition') {
+          setStats({
+            totalInterns: 0,
+            generatedCerts: 0,
+            verifications: 0,
+            activeInternships: 0,
+          });
+          setRecentInterns([]);
+        }
       } finally {
         setLoading(false);
       }
@@ -94,6 +105,25 @@ export default function Dashboard() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Firebase Setup Alert */}
+        {stats.totalInterns === 0 && stats.generatedCerts === 0 && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center">
+              <div className="text-blue-600 mr-3">
+                <i className="fas fa-info-circle"></i>
+              </div>
+              <div>
+                <h3 className="text-blue-900 font-medium">Complete Firebase Setup</h3>
+                <p className="text-blue-800 text-sm">
+                  To see your data, please complete Firebase setup:
+                  <br />1. Enable Firestore Database in test mode
+                  <br />2. Enable Authentication (Email/Password + Google)
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
@@ -207,7 +237,12 @@ export default function Dashboard() {
                   <div className="text-center text-gray-500 py-8">
                     <i className="fas fa-certificate text-gray-300 text-4xl mb-4"></i>
                     <p>No certificates generated yet</p>
-                    <p className="text-sm">Add your first intern to get started</p>
+                    <p className="text-sm">
+                      {stats.totalInterns === 0 && stats.generatedCerts === 0 ? 
+                        "Complete Firebase setup and add your first intern to get started" : 
+                        "Add your first intern to get started"
+                      }
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-4">
