@@ -75,12 +75,23 @@ export default function FirebaseSetup() {
               </ol>
             </div>
 
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <h3 className="font-semibold text-orange-900 mb-2">Step 5: Enable Firebase Storage</h3>
+              <ol className="text-sm text-orange-800 space-y-1">
+                <li>1. Go to Storage in Firebase Console</li>
+                <li>2. Click "Get started"</li>
+                <li>3. Choose "Start in test mode"</li>
+                <li>4. Select same location as Firestore</li>
+              </ol>
+            </div>
+
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-              <h3 className="font-semibold text-gray-900 mb-2">Current Status</h3>
+              <h3 className="font-semibold text-gray-900 mb-2">Setup Checklist</h3>
               <p className="text-sm text-gray-800">
                 ✅ Firebase keys are configured<br/>
                 ❌ Authentication providers need to be enabled<br/>
-                ❌ Firestore database needs to be created
+                ❌ Firestore database needs to be created<br/>
+                ❌ Firebase Storage needs to be enabled
               </p>
             </div>
 

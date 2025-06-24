@@ -24,12 +24,21 @@ import { v4 as uuidv4 } from "uuid";
 
 // User Settings
 export async function saveUserSettings(settings: InsertUserSettings): Promise<void> {
-  const userRef = doc(db, "userSettings", settings.uid);
-  await setDoc(userRef, {
-    ...settings,
-    setupCompleted: true,
-    createdAt: new Date(),
-  });
+  if (!db) {
+    throw new Error('Firestore not initialized. Check Firebase configuration.');
+  }
+  
+  try {
+    const userRef = doc(db, "userSettings", settings.uid);
+    await setDoc(userRef, {
+      ...settings,
+      setupCompleted: true,
+      createdAt: new Date(),
+    });
+  } catch (error) {
+    console.error('Error saving user settings:', error);
+    throw error;
+  }
 }
 
 export async function getUserSettings(uid: string): Promise<UserSettings | null> {
@@ -44,9 +53,18 @@ export async function getUserSettings(uid: string): Promise<UserSettings | null>
 
 // File Upload
 export async function uploadFile(file: File, path: string): Promise<string> {
-  const fileRef = ref(storage, path);
-  await uploadBytes(fileRef, file);
-  return getDownloadURL(fileRef);
+  if (!storage) {
+    throw new Error('Firebase Storage not initialized. Check Firebase configuration.');
+  }
+  
+  try {
+    const fileRef = ref(storage, path);
+    await uploadBytes(fileRef, file);
+    return getDownloadURL(fileRef);
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    throw error;
+  }
 }
 
 // Interns

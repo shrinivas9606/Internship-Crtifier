@@ -61,12 +61,19 @@ export default function ChooseTemplate() {
     setUploading(true);
 
     try {
-      // Upload files
-      const [logoUrl, supervisorSigUrl, ceoSigUrl] = await Promise.all([
+      toast({
+        title: "Uploading...",
+        description: "Uploading files and saving settings",
+      });
+
+      // Upload files with better error handling
+      const uploadPromises = [
         uploadFile(files.companyLogo, `logos/${user.uid}/${Date.now()}`),
         uploadFile(files.supervisorSignature, `signatures/${user.uid}/supervisor/${Date.now()}`),
         uploadFile(files.ceoSignature, `signatures/${user.uid}/ceo/${Date.now()}`),
-      ]);
+      ];
+
+      const [logoUrl, supervisorSigUrl, ceoSigUrl] = await Promise.all(uploadPromises);
 
       // Save user settings
       const settings: InsertUserSettings = {
@@ -91,9 +98,20 @@ export default function ChooseTemplate() {
 
       setLocation("/dashboard");
     } catch (error: any) {
+      console.error('Setup error:', error);
+      
+      let errorMessage = "Failed to complete setup";
+      if (error.code === 'storage/unauthorized') {
+        errorMessage = "Firebase Storage not configured. Please enable Firebase Storage in your project.";
+      } else if (error.code === 'permission-denied') {
+        errorMessage = "Firestore permissions error. Please check your Firestore rules.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       toast({
-        title: "Error",
-        description: error.message || "Failed to complete setup",
+        title: "Setup Error",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
