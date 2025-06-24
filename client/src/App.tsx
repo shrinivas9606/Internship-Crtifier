@@ -10,10 +10,17 @@ import ChooseTemplate from "@/pages/ChooseTemplate";
 import Dashboard from "@/pages/Dashboard";
 import AddIntern from "@/pages/AddIntern";
 import VerifyCertificate from "@/pages/VerifyCertificate";
+import FirebaseSetup from "@/pages/FirebaseSetup";
 import NotFound from "@/pages/not-found";
+import { auth } from "@/lib/firebase";
 
 function AppRoutes() {
   const { user, userSettings, loading } = useAuth();
+
+  // Show Firebase setup if not configured
+  if (!auth) {
+    return <FirebaseSetup />;
+  }
 
   if (loading) {
     return (

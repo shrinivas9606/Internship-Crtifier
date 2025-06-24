@@ -37,6 +37,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       if (user) {
@@ -56,15 +61,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    if (!auth) throw new Error('Firebase not configured');
     await signInWithEmailAndPassword(auth, email, password);
   };
 
   const signInWithGoogle = async () => {
+    if (!auth) throw new Error('Firebase not configured');
     const provider = new GoogleAuthProvider();
     await signInWithRedirect(auth, provider);
   };
 
   const signOut = async () => {
+    if (!auth) throw new Error('Firebase not configured');
     await firebaseSignOut(auth);
   };
 

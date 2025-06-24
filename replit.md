@@ -96,7 +96,9 @@ This is a full-stack application designed to generate and verify digital interns
 - **Firebase Config**: API keys and project configuration via environment variables
 
 ## Changelog
-- June 24, 2025. Initial setup
+- June 24, 2025: Initial setup complete
+- June 24, 2025: Added Firebase error handling and setup guidance
+- June 24, 2025: Fixed routing issues with wouter navigation
 
 ## User Preferences
 
