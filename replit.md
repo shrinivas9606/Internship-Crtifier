@@ -110,3 +110,5 @@ Preferred communication style: Simple, everyday language.
 - June 24, 2025: Fixed routing issue where completed users were redirected to setup page instead of dashboard
 - Choose template page now only shows for new users on first login
 - All authenticated users with completed setup go directly to dashboard
+- June 24, 2025: Simplified routing logic to check userSettings existence instead of setupCompleted flag
+- Fixed issue where users with valid settings were still seeing setup page instead of dashboard

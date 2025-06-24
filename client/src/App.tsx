@@ -41,47 +41,55 @@ function AppRoutes() {
       {/* Protected Routes */}
       <Route path="/choose-template">
         <AuthGuard fallback={<Login />}>
-          {userSettings?.setupCompleted ? (
+          {user && userSettings ? (
             <Dashboard />
-          ) : (
+          ) : user ? (
             <ChooseTemplate />
+          ) : (
+            <Login />
           )}
         </AuthGuard>
       </Route>
 
       <Route path="/dashboard">
         <AuthGuard fallback={<Login />}>
-          {userSettings?.setupCompleted ? (
+          {user && userSettings ? (
             <Dashboard />
-          ) : (
+          ) : user ? (
             <ChooseTemplate />
+          ) : (
+            <Login />
           )}
         </AuthGuard>
       </Route>
 
       <Route path="/add-intern">
         <AuthGuard fallback={<Login />}>
-          {userSettings?.setupCompleted ? (
+          {user && userSettings ? (
             <AddIntern />
-          ) : (
+          ) : user ? (
             <ChooseTemplate />
+          ) : (
+            <Login />
           )}
         </AuthGuard>
       </Route>
 
       <Route path="/bulk-import">
         <AuthGuard fallback={<Login />}>
-          {userSettings?.setupCompleted ? (
+          {user && userSettings ? (
             <BulkImport />
-          ) : (
+          ) : user ? (
             <ChooseTemplate />
+          ) : (
+            <Login />
           )}
         </AuthGuard>
       </Route>
 
       <Route path="/">
         {user ? (
-          userSettings?.setupCompleted ? (
+          userSettings ? (
             <Dashboard />
           ) : (
             <ChooseTemplate />
