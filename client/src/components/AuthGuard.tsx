@@ -22,9 +22,7 @@ export function AuthGuard({ children, fallback, requireSetup = false }: AuthGuar
     return fallback || null;
   }
 
-  if (requireSetup && (!userSettings || !userSettings.setupCompleted)) {
-    return fallback || null;
-  }
-
+  // Note: requireSetup logic is now handled in App.tsx routing
+  // This component just ensures authentication
   return <>{children}</>;
 }

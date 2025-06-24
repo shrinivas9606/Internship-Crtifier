@@ -48,26 +48,32 @@ function AppRoutes() {
       </Route>
 
       <Route path="/dashboard">
-        <AuthGuard requireSetup fallback={
-          user ? <ChooseTemplate /> : <Login />
-        }>
-          <Dashboard />
+        <AuthGuard fallback={<Login />}>
+          {userSettings?.setupCompleted ? (
+            <Dashboard />
+          ) : (
+            <ChooseTemplate />
+          )}
         </AuthGuard>
       </Route>
 
       <Route path="/add-intern">
-        <AuthGuard requireSetup fallback={
-          user ? <ChooseTemplate /> : <Login />
-        }>
-          <AddIntern />
+        <AuthGuard fallback={<Login />}>
+          {userSettings?.setupCompleted ? (
+            <AddIntern />
+          ) : (
+            <ChooseTemplate />
+          )}
         </AuthGuard>
       </Route>
 
       <Route path="/bulk-import">
-        <AuthGuard requireSetup fallback={
-          user ? <ChooseTemplate /> : <Login />
-        }>
-          <BulkImport />
+        <AuthGuard fallback={<Login />}>
+          {userSettings?.setupCompleted ? (
+            <BulkImport />
+          ) : (
+            <ChooseTemplate />
+          )}
         </AuthGuard>
       </Route>
 

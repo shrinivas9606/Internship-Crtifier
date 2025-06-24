@@ -103,6 +103,7 @@ export default function ChooseTemplate() {
         description: "Setup completed successfully",
       });
 
+      // After successful setup, always redirect to dashboard
       setLocation("/dashboard");
     } catch (error: any) {
       console.error('Setup error:', error);

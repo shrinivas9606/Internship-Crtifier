@@ -105,3 +105,8 @@ This is a full-stack application designed to generate and verify digital interns
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+
+## Recent Changes
+- June 24, 2025: Fixed routing issue where completed users were redirected to setup page instead of dashboard
+- Choose template page now only shows for new users on first login
+- All authenticated users with completed setup go directly to dashboard
