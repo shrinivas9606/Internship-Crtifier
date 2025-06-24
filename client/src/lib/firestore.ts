@@ -115,16 +115,56 @@ export async function getInternsByUser(uid: string): Promise<Intern[]> {
   }
   
   try {
+    console.log('Fetching interns for user:', uid);
+    
+    // First, try a simple query without orderBy to test connection
     const q = query(
       collection(db, "interns"),
-      where("createdBy", "==", uid),
-      orderBy("createdAt", "desc")
+      where("createdBy", "==", uid)
     );
     
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => doc.data() as Intern);
-  } catch (error) {
+    console.log('Query executed successfully, found docs:', querySnapshot.size);
+    
+    const interns = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      console.log('Intern doc data:', data);
+      return data as Intern;
+    });
+    
+    // Sort by createdAt on client side since we removed orderBy
+    return interns.sort((a, b) => {
+      const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+      const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+      return dateB.getTime() - dateA.getTime();
+    });
+    
+  } catch (error: any) {
     console.error('Error getting interns:', error);
+    
+    // More specific error handling
+    if (error.code === 'failed-precondition') {
+      console.error('Firestore indexes may be missing. Trying simpler query...');
+      try {
+        // Fallback: get all documents from collection without where clause
+        const simpleQuery = collection(db, "interns");
+        const snapshot = await getDocs(simpleQuery);
+        console.log('Simple query worked, total docs:', snapshot.size);
+        
+        return snapshot.docs
+          .map(doc => doc.data() as Intern)
+          .filter(intern => intern.createdBy === uid)
+          .sort((a, b) => {
+            const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+            const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+            return dateB.getTime() - dateA.getTime();
+          });
+      } catch (fallbackError) {
+        console.error('Fallback query also failed:', fallbackError);
+        return [];
+      }
+    }
+    
     return [];
   }
 }
