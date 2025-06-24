@@ -9,8 +9,10 @@ import type { Intern } from "@shared/schema";
 import { Plus, Upload } from "lucide-react";
 
 export default function Dashboard() {
-  const { user, signOut } = useAuth();
+  const { user, userSettings, signOut } = useAuth();
   const [, setLocation] = useLocation();
+  
+  console.log('Dashboard render - User:', user?.email, 'Settings:', userSettings);
   const [stats, setStats] = useState({
     totalInterns: 0,
     generatedCerts: 0,

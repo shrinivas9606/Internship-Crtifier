@@ -18,6 +18,8 @@ import { auth } from "@/lib/firebase";
 function AppRoutes() {
   const { user, userSettings, loading } = useAuth();
 
+  console.log('AppRoutes render - User:', user?.email, 'Settings:', userSettings, 'Loading:', loading);
+
   // Show Firebase setup if not configured
   if (!auth) {
     return <FirebaseSetup />;

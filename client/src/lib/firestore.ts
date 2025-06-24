@@ -43,20 +43,30 @@ export async function saveUserSettings(settings: InsertUserSettings): Promise<vo
 
 export async function getUserSettings(uid: string): Promise<UserSettings | null> {
   if (!db) {
-    throw new Error('Firestore not initialized. Check Firebase configuration.');
+    console.warn('Firestore not initialized, returning null');
+    return null;
   }
   
   try {
+    console.log('Fetching user settings from Firestore for UID:', uid);
     const userRef = doc(db, "userSettings", uid);
     const userSnap = await getDoc(userRef);
     
+    console.log('User settings doc exists:', userSnap.exists());
     if (userSnap.exists()) {
-      return userSnap.data() as UserSettings;
+      const data = userSnap.data() as UserSettings;
+      console.log('User settings data:', data);
+      return data;
     }
+    console.log('No user settings found for user, they need to complete setup');
     return null;
   } catch (error) {
     console.error('Error getting user settings:', error);
-    throw error;
+    // If it's a permission error, Firestore might not be properly configured
+    if (error.code === 'permission-denied') {
+      console.error('Permission denied - check Firestore rules');
+    }
+    return null;
   }
 }
 
