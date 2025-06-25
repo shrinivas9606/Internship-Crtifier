@@ -100,7 +100,9 @@ function AppRoutes() {
       </Route>
 
       {/* Fallback */}
-      <Route component={NotFound} />
+      <Route>
+        <NotFound />
+      </Route>
     </Switch>
   );
 }

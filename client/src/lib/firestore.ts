@@ -22,6 +22,15 @@ import type {
 } from "@shared/schema";
 import { v4 as uuidv4 } from "uuid";
 
+// Debug Firebase configuration
+console.log('Firestore db object:', db);
+console.log('Firebase config check:', {
+  hasApiKey: !!import.meta.env.VITE_FIREBASE_API_KEY,
+  hasAppId: !!import.meta.env.VITE_FIREBASE_APP_ID,
+  hasProjectId: !!import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID
+});
+
 // User Settings
 export async function saveUserSettings(settings: InsertUserSettings): Promise<void> {
   if (!db) {
@@ -42,29 +51,45 @@ export async function saveUserSettings(settings: InsertUserSettings): Promise<vo
 }
 
 export async function getUserSettings(uid: string): Promise<UserSettings | null> {
+  console.log('=== getUserSettings called ===');
+  console.log('UID:', uid);
+  console.log('DB object:', db);
+  console.log('DB is null?', db === null);
+  
   if (!db) {
-    console.warn('Firestore not initialized, returning null');
+    console.error('❌ Firestore not initialized! Check Firebase configuration.');
+    console.log('Environment check:', {
+      VITE_FIREBASE_API_KEY: import.meta.env.VITE_FIREBASE_API_KEY ? 'EXISTS' : 'MISSING',
+      VITE_FIREBASE_APP_ID: import.meta.env.VITE_FIREBASE_APP_ID ? 'EXISTS' : 'MISSING', 
+      VITE_FIREBASE_PROJECT_ID: import.meta.env.VITE_FIREBASE_PROJECT_ID ? 'EXISTS' : 'MISSING'
+    });
     return null;
   }
   
   try {
-    console.log('Fetching user settings from Firestore for UID:', uid);
+    console.log('✅ Firestore initialized, fetching user settings...');
     const userRef = doc(db, "userSettings", uid);
-    const userSnap = await getDoc(userRef);
+    console.log('Document reference created:', userRef);
     
-    console.log('User settings doc exists:', userSnap.exists());
+    const userSnap = await getDoc(userRef);
+    console.log('Document snapshot retrieved:', userSnap);
+    console.log('Document exists:', userSnap.exists());
+    
     if (userSnap.exists()) {
       const data = userSnap.data() as UserSettings;
-      console.log('User settings data:', data);
+      console.log('✅ User settings found:', data);
       return data;
+    } else {
+      console.log('⚠️ No user settings document found - user needs to complete setup');
+      return null;
     }
-    console.log('No user settings found for user, they need to complete setup');
-    return null;
-  } catch (error) {
-    console.error('Error getting user settings:', error);
-    // If it's a permission error, Firestore might not be properly configured
+  } catch (error: any) {
+    console.error('❌ Error getting user settings:', error);
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
+    
     if (error.code === 'permission-denied') {
-      console.error('Permission denied - check Firestore rules');
+      console.error('🔒 Permission denied - check Firestore security rules');
     }
     return null;
   }

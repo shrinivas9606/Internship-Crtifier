@@ -32,12 +32,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshUserSettings = async () => {
     if (user) {
       try {
-        console.log('Fetching user settings for UID:', user.uid);
+        console.log('Refreshing user settings for UID:', user.uid);
         const settings = await getUserSettings(user.uid);
-        console.log('User settings loaded:', settings);
+        console.log('Refreshed user settings:', settings);
         setUserSettings(settings);
       } catch (error) {
-        console.error('Error loading user settings:', error);
+        console.error('Error refreshing user settings:', error);
         setUserSettings(null);
       }
     }
@@ -53,7 +53,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('Auth state changed:', user ? `User logged in: ${user.email}` : 'User logged out');
       setUser(user);
       if (user) {
-        await refreshUserSettings();
+        console.log('User authenticated, fetching settings...');
+        try {
+          const settings = await getUserSettings(user.uid);
+          console.log('Settings fetched in auth hook:', settings);
+          setUserSettings(settings);
+        } catch (error) {
+          console.error('Error fetching user settings in auth hook:', error);
+          setUserSettings(null);
+        }
       } else {
         setUserSettings(null);
       }

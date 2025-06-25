@@ -23,13 +23,28 @@ let auth: any = null;
 let db: any = null;
 let storage: any = null;
 
+console.log('=== Firebase Initialization ===');
+console.log('Has Firebase Keys:', hasFirebaseKeys);
+console.log('API Key exists:', !!import.meta.env.VITE_FIREBASE_API_KEY);
+console.log('App ID exists:', !!import.meta.env.VITE_FIREBASE_APP_ID);
+console.log('Project ID exists:', !!import.meta.env.VITE_FIREBASE_PROJECT_ID);
+console.log('Project ID value:', import.meta.env.VITE_FIREBASE_PROJECT_ID);
+
 if (hasFirebaseKeys) {
-  app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
-  storage = getStorage(app);
+  try {
+    console.log('Initializing Firebase with config:', firebaseConfig);
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+    storage = getStorage(app);
+    console.log('✅ Firebase initialized successfully');
+    console.log('Auth:', auth);
+    console.log('DB:', db);
+  } catch (error) {
+    console.error('❌ Firebase initialization failed:', error);
+  }
 } else {
-  console.warn('Firebase configuration keys not found. Please add VITE_FIREBASE_API_KEY, VITE_FIREBASE_APP_ID, and VITE_FIREBASE_PROJECT_ID to your environment.');
+  console.error('❌ Firebase configuration keys not found. Missing environment variables.');
 }
 
 export { auth, db, storage };
