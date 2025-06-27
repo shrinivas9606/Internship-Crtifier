@@ -14,6 +14,7 @@ import VerifyCertificate from "@/pages/VerifyCertificate";
 import FirebaseSetup from "@/pages/FirebaseSetup";
 import NotFound from "@/pages/not-found";
 import { auth } from "@/lib/firebase";
+import InternList from "@/pages/InternList";
 
 function AppRoutes() {
   const { user, userSettings, loading } = useAuth();
@@ -67,6 +68,18 @@ function AppRoutes() {
         <AuthGuard fallback={<Login />}>
           {user && userSettings ? (
             <AddIntern />
+          ) : user ? (
+            <ChooseTemplate />
+          ) : (
+            <Login />
+          )}
+        </AuthGuard>
+      </Route>
+
+      <Route path="/intern-list">
+        <AuthGuard fallback={<Login />}>
+          {user && userSettings ? (
+            <InternList />
           ) : user ? (
             <ChooseTemplate />
           ) : (

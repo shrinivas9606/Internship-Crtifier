@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState , useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { addIntern } from "@/lib/firestore";
@@ -14,6 +14,13 @@ export default function AddIntern() {
   const [, setLocation] = useLocation();
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+
+  // ✅ Redirect to "/" if not logged in
+useEffect(() => {
+  if (!user) {
+    setLocation("/");
+  }
+}, [user]);
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -111,6 +118,12 @@ export default function AddIntern() {
     }
   };
 
+  // ✅ Handle sign out and route reset
+const handleSignOut = async () => {
+  await signOut();
+  setLocation("/");
+};
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -130,7 +143,7 @@ export default function AddIntern() {
               </div>
               <h1 className="text-xl font-semibold text-gray-900">Add New Intern</h1>
             </div>
-            <Button variant="ghost" onClick={signOut}>
+            <Button variant="ghost" onClick={handleSignOut}>
               <i className="fas fa-sign-out-alt"></i>
             </Button>
           </div>
