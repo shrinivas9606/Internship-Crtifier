@@ -157,7 +157,7 @@ export const CertificateTemplate = forwardRef<HTMLDivElement, CertificateTemplat
               <div className="bg-white rounded-lg p-8 md:p-12 shadow-xl">
                 <div className="text-center mb-8">
                   <div className="text-2xl md:text-3xl font-serif font-bold text-amber-700 mb-2">
-                    Certificate of Achievement
+                    Certificate of Completion
                   </div>
                   <div className="w-24 h-0.5 bg-amber-600 mx-auto"></div>
                 </div>
