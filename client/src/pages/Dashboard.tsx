@@ -11,8 +11,7 @@ import { Plus, Upload } from "lucide-react";
 export default function Dashboard() {
   const { user, userSettings, signOut } = useAuth();
   const [, setLocation] = useLocation();
-  
-  console.log('Dashboard render - User:', user?.email, 'Settings:', userSettings);
+
   const [stats, setStats] = useState({
     totalInterns: 0,
     generatedCerts: 0,
@@ -36,9 +35,8 @@ export default function Dashboard() {
         setRecentInterns(interns.slice(0, 5)); // Show only recent 5
       } catch (error: any) {
         console.error("Error loading dashboard data:", error);
-        
-        // Show helpful error message if Firestore is not configured
-        if (error.code === 'failed-precondition') {
+
+        if (error.code === "failed-precondition") {
           setStats({
             totalInterns: 0,
             generatedCerts: 0,
@@ -58,7 +56,7 @@ export default function Dashboard() {
   const getInitials = (name: string) => {
     return name
       .split(" ")
-      .map(part => part.charAt(0))
+      .map((part) => part.charAt(0))
       .join("")
       .toUpperCase()
       .slice(0, 2);
@@ -69,10 +67,10 @@ export default function Dashboard() {
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - date.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 1) return "1 day ago";
     if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.ceil(diffDays / 7)} week${diffDays >= 14 ? 's' : ''} ago`;
+    if (diffDays < 30) return `${Math.ceil(diffDays / 7)} week${diffDays >= 14 ? "s" : ""} ago`;
     return date.toLocaleDateString();
   };
 
@@ -86,7 +84,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
@@ -107,7 +104,6 @@ export default function Dashboard() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Firebase Setup Alert */}
         {stats.totalInterns === 0 && stats.generatedCerts === 0 && (
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-center">
@@ -126,105 +122,49 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <i className="fas fa-users text-blue-600"></i>
+          {[
+            { label: "Total Interns", value: stats.totalInterns, icon: "users", color: "blue" },
+            { label: "Generated Certificates", value: stats.generatedCerts, icon: "certificate", color: "green" },
+            { label: "Verifications", value: stats.verifications, icon: "eye", color: "purple" },
+            { label: "Active Internships", value: stats.activeInternships, icon: "clock", color: "yellow" },
+          ].map((stat, i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className={`p-2 bg-${stat.color}-100 rounded-lg`}>
+                    <i className={`fas fa-${stat.icon} text-${stat.color}-600`}></i>
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-sm font-medium text-gray-500">{stat.label}</h3>
+                    <p className="text-2xl font-semibold text-gray-900">{stat.value}</p>
+                  </div>
                 </div>
-                <div className="ml-4">
-                  <h3 className="text-sm font-medium text-gray-500">Total Interns</h3>
-                  <p className="text-2xl font-semibold text-gray-900">{stats.totalInterns}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <i className="fas fa-certificate text-green-600"></i>
-                </div>
-                <div className="ml-4">
-                  <h3 className="text-sm font-medium text-gray-500">Generated Certificates</h3>
-                  <p className="text-2xl font-semibold text-gray-900">{stats.generatedCerts}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <i className="fas fa-eye text-purple-600"></i>
-                </div>
-                <div className="ml-4">
-                  <h3 className="text-sm font-medium text-gray-500">Verifications</h3>
-                  <p className="text-2xl font-semibold text-gray-900">{stats.verifications}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <i className="fas fa-clock text-yellow-600"></i>
-                </div>
-                <div className="ml-4">
-                  <h3 className="text-sm font-medium text-gray-500">Active Internships</h3>
-                  <p className="text-2xl font-semibold text-gray-900">{stats.activeInternships}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
-        {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Quick Actions */}
           <div className="lg:col-span-1">
             <Card>
               <CardContent className="p-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
                 <div className="space-y-3">
-                  <Button 
-                    className="w-full justify-start" 
-                    variant="default"
-                    onClick={() => setLocation("/add-intern")}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add New Intern
+                  <Button className="w-full justify-start" variant="default" onClick={() => setLocation("/add-intern")}>
+                    <Plus className="h-4 w-4 mr-2" /> Add New Intern
                   </Button>
-
-                  <Button 
-                    className="w-full justify-start" 
-                    variant="outline"
-                    onClick={() => setLocation("/bulk-import")}
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Bulk Import CSV
+                  <Button className="w-full justify-start" variant="outline" onClick={() => setLocation("/bulk-import")}>
+                    <Upload className="h-4 w-4 mr-2" /> Bulk Import CSV
                   </Button>
-
-                  <Button 
-                    className="w-full justify-start" 
-                    variant="outline"
-                    onClick={() => setLocation("/choose-template")}
-                  >
-                    <i className="fas fa-cog mr-2"></i>
-                    Template Settings
+                  <Button className="w-full justify-start" variant="outline" onClick={() => setLocation("/choose-template")}>
+                    <i className="fas fa-cog mr-2"></i> Template Settings
                   </Button>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Recent Certificates */}
           <div className="lg:col-span-2">
             <Card>
               <div className="px-6 py-4 border-b border-gray-200">
@@ -233,17 +173,15 @@ export default function Dashboard() {
                   <Button variant="ghost" size="sm" onClick={() => setLocation("/intern-list")}>View All</Button>
                 </div>
               </div>
-
               <CardContent className="p-6">
                 {recentInterns.length === 0 ? (
                   <div className="text-center text-gray-500 py-8">
                     <i className="fas fa-certificate text-gray-300 text-4xl mb-4"></i>
                     <p>No certificates generated yet</p>
                     <p className="text-sm">
-                      {stats.totalInterns === 0 && stats.generatedCerts === 0 ? 
-                        "Complete Firebase setup and add your first intern to get started" : 
-                        "Add your first intern to get started"
-                      }
+                      {stats.totalInterns === 0 && stats.generatedCerts === 0 ?
+                        "Complete Firebase setup and add your first intern to get started" :
+                        "Add your first intern to get started"}
                     </p>
                   </div>
                 ) : (
@@ -252,9 +190,7 @@ export default function Dashboard() {
                       <div key={intern.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
                         <div className="flex items-center">
                           <div className="h-10 w-10 bg-primary-100 rounded-full flex items-center justify-center mr-4">
-                            <span className="font-medium text-primary-600 text-sm">
-                              {getInitials(intern.fullName)}
-                            </span>
+                            <span className="font-medium text-primary-600 text-sm">{getInitials(intern.fullName)}</span>
                           </div>
                           <div>
                             <h4 className="font-medium text-gray-900">{intern.fullName}</h4>
@@ -263,9 +199,7 @@ export default function Dashboard() {
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Badge variant={intern.status === "completed" ? "default" : "secondary"}>
-                            {intern.status === "completed" ? "Completed" : "In Progress"}
-                          </Badge>
+                          <Badge variant={intern.status === "completed" ? "default" : "secondary"}>{intern.status === "completed" ? "Completed" : "In Progress"}</Badge>
                           <Link href={`/verify/${intern.certificateId}`}>
                             <Button variant="ghost" size="sm">
                               <i className="fas fa-external-link-alt"></i>
