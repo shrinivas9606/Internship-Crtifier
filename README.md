@@ -5,7 +5,7 @@ A web-based system to generate, manage, and verify internship certificates with 
 ---
 
 ### 🔗 Website Link  
-[Visit the Website]([https://your-website-link.com](https://internship-crtifier.onrender.com))  
+[Visit the Website]([https://internship-crtifier.onrender.com])  
 
 ---
 
