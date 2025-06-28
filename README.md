@@ -5,7 +5,7 @@ A web-based system to generate, manage, and verify internship certificates with 
 ---
 
 ### 🔗 Website Link  
-[Visit the Website](https://your-website-link.com)  
+[Visit the Website](https://internship-crtifier.onrender.com)  
 
 ---
 
@@ -30,7 +30,7 @@ A web-based system to generate, manage, and verify internship certificates with 
 - **Frontend**: React.js  
 - **Backend**: Node.js + Express  
 - **Database**: Firebase / MongoDB  
-- **Hosting**: Vercel / Replit / GitHub Pages
+- **Hosting**: Vercel / Replit / Render
 
 ---
 
