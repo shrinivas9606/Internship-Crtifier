@@ -86,7 +86,7 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">{user?.email}</span>
-              <Button variant="ghost" onClick={signOut}>
+              <Button variant="ghost" onClick={async () => {await signOut();setLocation("/");}}>
                 <i className="fas fa-sign-out-alt"></i>
               </Button>
             </div>

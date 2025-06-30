@@ -30,6 +30,20 @@ interface ProcessResult {
   intern: CSVRecord;
 }
 
+// Utility functions for date handling
+const parseFirestoreDate = (date: any): Date => {
+  if (date?.seconds) return new Date(date.seconds * 1000);
+  if (date instanceof Date) return date;
+  if (typeof date === 'string') return new Date(date);
+  return new Date();
+};
+
+const formatDateForFirestore = (dateString: string): Date => {
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) throw new Error(`Invalid date: ${dateString}`);
+  return date;
+};
+
 export default function BulkImport() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
@@ -107,19 +121,21 @@ Mike Johnson,mike.johnson@example.com,Mobile Development,2024-01-10,2024-04-10,c
       }
 
       // Validate dates
-      const startDate = new Date(record.startDate);
-      const endDate = new Date(record.endDate);
-      
-      if (isNaN(startDate.getTime())) {
-        throw new Error(`Row ${i + 1}: Invalid start date format (use YYYY-MM-DD)`);
-      }
-      
-      if (isNaN(endDate.getTime())) {
-        throw new Error(`Row ${i + 1}: Invalid end date format (use YYYY-MM-DD)`);
-      }
+      try {
+        const startDate = formatDateForFirestore(record.startDate);
+        const endDate = formatDateForFirestore(record.endDate);
+        
+        // Validate date format is YYYY-MM-DD
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(record.startDate) || !dateRegex.test(record.endDate)) {
+          throw new Error(`Row ${i + 1}: Dates must be in YYYY-MM-DD format`);
+        }
 
-      if (endDate <= startDate) {
-        throw new Error(`Row ${i + 1}: End date must be after start date`);
+        if (endDate <= startDate) {
+          throw new Error(`Row ${i + 1}: End date must be after start date`);
+        }
+      } catch (error: any) {
+        throw new Error(`Row ${i + 1}: ${error.message}`);
       }
 
       records.push(record as CSVRecord);
@@ -154,12 +170,16 @@ Mike Johnson,mike.johnson@example.com,Mobile Development,2024-01-10,2024-04-10,c
         setProgress(Math.round((i / records.length) * 100));
 
         try {
+          // Convert and validate dates
+          const startDate = formatDateForFirestore(record.startDate);
+          const endDate = formatDateForFirestore(record.endDate);
+
           const internData: InsertIntern = {
             fullName: record.fullName,
             email: record.email,
             domain: record.domain,
-            startDate: new Date(record.startDate),
-            endDate: new Date(record.endDate),
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
             status: record.status,
             createdBy: user.uid,
           };
@@ -182,7 +202,6 @@ Mike Johnson,mike.johnson@example.com,Mobile Development,2024-01-10,2024-04-10,c
           });
         }
 
-        // Small delay to prevent overwhelming the database
         await new Promise(resolve => setTimeout(resolve, 100));
       }
 

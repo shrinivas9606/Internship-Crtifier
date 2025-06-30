@@ -7,6 +7,26 @@ import { Badge } from "@/components/ui/badge";
 import { CertificateTemplate } from "@/components/CertificateTemplate";
 import type { Intern, UserSettings } from "@shared/schema";
 
+// Utility functions for date handling
+const parseFirestoreDate = (date: any): Date => {
+  if (date?.seconds) return new Date(date.seconds * 1000);
+  if (date instanceof Date) return date;
+  if (typeof date === 'string') return new Date(date);
+  return new Date();
+};
+
+// Update the formatDisplayDate function in VerifyCertificate.tsx
+const formatDisplayDate = (date: Date): string => {
+  if (isNaN(date.getTime())) return "Invalid Date";
+  
+  // Format as YYYY-MM-DD
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}`;
+};
+
 export default function VerifyCertificate() {
   const [, params] = useRoute("/verify/:certificateId");
   const certificateId = params?.certificateId;
@@ -27,7 +47,17 @@ export default function VerifyCertificate() {
       try {
         const result = await getInternByCertificateId(certificateId);
         if (result) {
-          setData(result);
+          // Format the dates before setting the data
+          const formattedData = {
+            ...result,
+            intern: {
+              ...result.intern,
+              startDate: parseFirestoreDate(result.intern.startDate).toISOString(),
+              endDate: parseFirestoreDate(result.intern.endDate).toISOString(),
+              createdAt: parseFirestoreDate(result.intern.createdAt)
+            }
+          };
+          setData(formattedData);
         } else {
           setError("Certificate not found or invalid");
         }
@@ -112,7 +142,11 @@ export default function VerifyCertificate() {
         <Card className="shadow-lg print:shadow-none print:border-none">
           <CertificateTemplate
             ref={certificateRef}
-            intern={intern}
+            intern={{
+              ...intern,
+              startDate: parseFirestoreDate(intern.startDate).toISOString(),
+              endDate: parseFirestoreDate(intern.endDate).toISOString()
+            }}
             userSettings={userSettings}
             verificationUrl={getVerificationUrl()}
           />
@@ -161,6 +195,18 @@ export default function VerifyCertificate() {
                   Valid & Active
                 </Badge>
               </div>
+              <div>
+                <p className="text-sm text-gray-600">Internship Period:</p>
+                <p className="font-semibold text-gray-800">
+                  {formatDisplayDate(parseFirestoreDate(intern.startDate))} - {formatDisplayDate(parseFirestoreDate(intern.endDate))}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Duration:</p>
+                <p className="font-semibold text-gray-800">
+                  {calculateDuration(parseFirestoreDate(intern.startDate), parseFirestoreDate(intern.endDate))}
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -183,4 +229,21 @@ export default function VerifyCertificate() {
       }} />
     </div>
   );
+}
+
+// Helper function to calculate duration between dates
+function calculateDuration(startDate: Date, endDate: Date): string {
+  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+    return "Invalid duration";
+  }
+
+  const months = (endDate.getFullYear() - startDate.getFullYear()) * 12 + 
+                (endDate.getMonth() - startDate.getMonth());
+  
+  if (months <= 0) {
+    const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    return `${days} day${days !== 1 ? 's' : ''}`;
+  }
+
+  return `${months} month${months !== 1 ? 's' : ''}`;
 }

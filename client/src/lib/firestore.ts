@@ -3,13 +3,12 @@ import {
   setDoc, 
   getDoc, 
   collection, 
-  addDoc, 
   query, 
   where, 
-  orderBy, 
   getDocs,
   updateDoc,
-  increment 
+  increment,
+  Timestamp
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "./firebase";
@@ -22,43 +21,53 @@ import type {
 } from "@shared/schema";
 import { v4 as uuidv4 } from "uuid";
 
-// Debug Firebase configuration
-console.log('Firestore db object:', db);
-console.log('Firebase config check:', {
-  hasApiKey: !!import.meta.env.VITE_FIREBASE_API_KEY,
-  hasAppId: !!import.meta.env.VITE_FIREBASE_APP_ID,
-  hasProjectId: !!import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID
-});
+// Utility function to parse date strings in YYYY-MM-DD format
+const parseDateString = (dateString: string): Date => {
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
+// Convert to Firestore Timestamp (handles both Date objects and YYYY-MM-DD strings)
+const toFirestoreDate = (date: Date | string): Timestamp => {
+  if (typeof date === 'string') {
+    return Timestamp.fromDate(parseDateString(date));
+  }
+  return Timestamp.fromDate(date);
+};
+
+// Convert Firestore data to YYYY-MM-DD string
+export const firestoreToDateString = (timestamp: Timestamp | Date | string): string => {
+  let date: Date;
+  
+  if (timestamp instanceof Timestamp) {
+    date = timestamp.toDate();
+  } else if (typeof timestamp === 'string') {
+    date = new Date(timestamp);
+  } else {
+    date = timestamp;
+  }
+
+  if (isNaN(date.getTime())) {
+    return 'Invalid Date';
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}`;
+};
 
 // User Settings
 export async function saveUserSettings(settings: InsertUserSettings): Promise<void> {
-  if (!db) {
-    throw new Error('Firestore not initialized. Check Firebase configuration.');
-  }
+  if (!db) throw new Error('Firestore not initialized');
   
   try {
-    const docRef = doc(db, "userSettings", settings.uid);
-    await setDoc(docRef, settings, { merge: true }); // merge: true allows partial updates
-  } catch (error) {
-    console.error('Error saving user settings:', error);
-    throw error;
-  }
-}
-
-// This is the original saveUserSettings function - keeping it for backward compatibility
-export async function _legacySaveUserSettings(settings: InsertUserSettings): Promise<void> {
-  if (!db) {
-    throw new Error('Firestore not initialized. Check Firebase configuration.');
-  }
-  
-  try {
-    const userRef = doc(db, "userSettings", settings.uid);
-    await setDoc(userRef, {
+    await setDoc(doc(db, "userSettings", settings.uid), {
       ...settings,
       setupCompleted: true,
-      createdAt: new Date(),
-    });
+      createdAt: Timestamp.now(),
+    }, { merge: true });
   } catch (error) {
     console.error('Error saving user settings:', error);
     throw error;
@@ -66,89 +75,64 @@ export async function _legacySaveUserSettings(settings: InsertUserSettings): Pro
 }
 
 export async function getUserSettings(uid: string): Promise<UserSettings | null> {
-  console.log('=== getUserSettings called ===');
-  console.log('UID:', uid);
-  console.log('DB object:', db);
-  console.log('DB is null?', db === null);
-  
   if (!db) {
-    console.error('❌ Firestore not initialized! Check Firebase configuration.');
-    console.log('Environment check:', {
-      VITE_FIREBASE_API_KEY: import.meta.env.VITE_FIREBASE_API_KEY ? 'EXISTS' : 'MISSING',
-      VITE_FIREBASE_APP_ID: import.meta.env.VITE_FIREBASE_APP_ID ? 'EXISTS' : 'MISSING', 
-      VITE_FIREBASE_PROJECT_ID: import.meta.env.VITE_FIREBASE_PROJECT_ID ? 'EXISTS' : 'MISSING'
-    });
+    console.error('Firestore not initialized');
     return null;
   }
   
   try {
-    console.log('✅ Firestore initialized, fetching user settings...');
-    const userRef = doc(db, "userSettings", uid);
-    console.log('Document reference created:', userRef);
-    
-    const userSnap = await getDoc(userRef);
-    console.log('Document snapshot retrieved:', userSnap);
-    console.log('Document exists:', userSnap.exists());
-    
-    if (userSnap.exists()) {
-      const data = userSnap.data() as UserSettings;
-      console.log('✅ User settings found:', data);
-      return data;
-    } else {
-      console.log('⚠️ No user settings document found - user needs to complete setup');
-      return null;
-    }
-  } catch (error: any) {
-    console.error('❌ Error getting user settings:', error);
-    console.error('Error code:', error.code);
-    console.error('Error message:', error.message);
-    
-    if (error.code === 'permission-denied') {
-      console.error('🔒 Permission denied - check Firestore security rules');
-    }
+    const userSnap = await getDoc(doc(db, "userSettings", uid));
+    return userSnap.exists() ? userSnap.data() as UserSettings : null;
+  } catch (error) {
+    console.error('Error getting user settings:', error);
     return null;
   }
 }
 
-// File Upload - No longer needed since we use data URLs
-// This function is kept for compatibility but not used
+// File Upload
 export async function uploadFile(file: File, path: string): Promise<string> {
-  // Convert to data URL instead of uploading to Firebase Storage
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+  if (!storage) throw new Error('Storage not initialized');
+  
+  try {
+    const storageRef = ref(storage, path);
+    const snapshot = await uploadBytes(storageRef, file);
+    return await getDownloadURL(snapshot.ref);
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    throw error;
+  }
 }
 
 // Interns
 export async function addIntern(internData: InsertIntern): Promise<string> {
-  if (!db) {
-    throw new Error('Firestore not initialized. Check Firebase configuration.');
-  }
+  if (!db) throw new Error('Firestore not initialized');
   
   try {
+    // Validate date format if strings are provided
+    if (typeof internData.startDate === 'string' && !/^\d{4}-\d{2}-\d{2}$/.test(internData.startDate)) {
+      throw new Error('Start date must be in YYYY-MM-DD format');
+    }
+    if (typeof internData.endDate === 'string' && !/^\d{4}-\d{2}-\d{2}$/.test(internData.endDate)) {
+      throw new Error('End date must be in YYYY-MM-DD format');
+    }
+
     const id = uuidv4();
     const certificateId = `CERT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
     
-    const intern: Omit<Intern, 'createdAt'> = {
+    await setDoc(doc(db, "interns", id), {
       ...internData,
       id,
       certificateId,
-    };
-
-    await setDoc(doc(db, "interns", id), {
-      ...intern,
-      createdAt: new Date(),
+      startDate: toFirestoreDate(internData.startDate),
+      endDate: toFirestoreDate(internData.endDate),
+      createdAt: Timestamp.now(),
     });
 
-    // Create verification record
     await setDoc(doc(db, "verifications", certificateId), {
       certificateId,
       internId: id,
       verificationCount: 0,
-      lastVerified: new Date(),
+      lastVerified: Timestamp.now(),
     });
 
     return certificateId;
@@ -160,107 +144,74 @@ export async function addIntern(internData: InsertIntern): Promise<string> {
 
 export async function getInternsByUser(uid: string): Promise<Intern[]> {
   if (!db) {
-    console.warn('Firestore not initialized, returning empty array');
+    console.warn('Firestore not initialized');
     return [];
   }
   
   try {
-    console.log('Fetching interns for user:', uid);
+    const q = query(collection(db, "interns"), where("createdBy", "==", uid));
+    const snapshot = await getDocs(q);
     
-    // First, try a simple query without orderBy to test connection
-    const q = query(
-      collection(db, "interns"),
-      where("createdBy", "==", uid)
-    );
-    
-    const querySnapshot = await getDocs(q);
-    console.log('Query executed successfully, found docs:', querySnapshot.size);
-    
-    const interns = querySnapshot.docs.map(doc => {
-      const data = doc.data();
-      console.log('Intern doc data:', data);
-      return data as Intern;
+    return snapshot.docs.map(doc => {
+      const data = doc.data() as Intern;
+      return {
+        ...data,
+        // Convert Firestore Timestamps to date strings for startDate and endDate,
+        // but keep createdAt as a Date object
+        startDate: firestoreToDateString(data.startDate),
+        endDate: firestoreToDateString(data.endDate),
+        createdAt: data.createdAt instanceof Timestamp
+          ? data.createdAt.toDate()
+          : (typeof data.createdAt === "string"
+              ? new Date(data.createdAt)
+              : data.createdAt)
+      };
+    }).sort((a, b) => {
+      const dateA = a.createdAt.getTime();
+      const dateB = b.createdAt.getTime();
+      return dateB - dateA;
     });
-    
-    // Sort by createdAt on client side since we removed orderBy
-    return interns.sort((a, b) => {
-      const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
-      const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
-      return dateB.getTime() - dateA.getTime();
-    });
-    
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error getting interns:', error);
-    
-    // More specific error handling
-    if (error.code === 'failed-precondition') {
-      console.error('Firestore indexes may be missing. Trying simpler query...');
-      try {
-        // Fallback: get all documents from collection without where clause
-        const simpleQuery = collection(db, "interns");
-        const snapshot = await getDocs(simpleQuery);
-        console.log('Simple query worked, total docs:', snapshot.size);
-        
-        return snapshot.docs
-          .map(doc => doc.data() as Intern)
-          .filter(intern => intern.createdBy === uid)
-          .sort((a, b) => {
-            const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
-            const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
-            return dateB.getTime() - dateA.getTime();
-          });
-      } catch (fallbackError) {
-        console.error('Fallback query also failed:', fallbackError);
-        return [];
-      }
-    }
-    
     return [];
   }
 }
 
 export async function getInternByCertificateId(certificateId: string): Promise<{ intern: Intern; userSettings: UserSettings } | null> {
-  if (!db) {
-    throw new Error('Firestore not initialized. Check Firebase configuration.');
-  }
+  if (!db) throw new Error('Firestore not initialized');
 
   try {
-    // Get verification record first
     const verificationRef = doc(db, "verifications", certificateId);
     const verificationSnap = await getDoc(verificationRef);
     
-    if (!verificationSnap.exists()) {
-      return null;
-    }
+    if (!verificationSnap.exists()) return null;
 
-    const verification = verificationSnap.data() as CertificateVerification;
-    
-    // Update verification count
     await updateDoc(verificationRef, {
       verificationCount: increment(1),
-      lastVerified: new Date(),
+      lastVerified: Timestamp.now(),
     });
 
-    // Get intern data
-    const internRef = doc(db, "interns", verification.internId);
+    const internRef = doc(db, "interns", verificationSnap.data().internId);
     const internSnap = await getDoc(internRef);
     
-    if (!internSnap.exists()) {
-      return null;
-    }
+    if (!internSnap.exists()) return null;
 
-    const intern = internSnap.data() as Intern;
-
-    // Get user settings for the creator
-    const userSettings = await getUserSettings(intern.createdBy);
+    const internData = internSnap.data() as Intern;
+    const userSettings = await getUserSettings(internData.createdBy);
     
-    if (!userSettings) {
-      return null;
-    }
+    if (!userSettings) return null;
 
-    return { intern, userSettings };
+    return {
+      intern: {
+        ...internData,
+        startDate: firestoreToDateString(internData.startDate),
+        endDate: firestoreToDateString(internData.endDate),
+        createdAt: internData.createdAt instanceof Timestamp ? internData.createdAt.toDate() : new Date(internData.createdAt)
+      },
+      userSettings
+    };
   } catch (error) {
-    console.error('Error getting intern by certificate ID:', error);
+    console.error('Error getting intern:', error);
     throw error;
   }
 }
@@ -268,7 +219,7 @@ export async function getInternByCertificateId(certificateId: string): Promise<{
 // Dashboard Stats
 export async function getDashboardStats(uid: string) {
   if (!db) {
-    console.warn('Firestore not initialized, returning default stats');
+    console.warn('Firestore not initialized');
     return {
       totalInterns: 0,
       generatedCerts: 0,
@@ -279,22 +230,19 @@ export async function getDashboardStats(uid: string) {
 
   try {
     const interns = await getInternsByUser(uid);
-    
     const totalInterns = interns.length;
     const completedInterns = interns.filter(intern => intern.status === "completed").length;
     const activeInternships = interns.filter(intern => intern.status === "active").length;
 
-    // Get total verifications (simplified - in real app you'd aggregate from all certificates)
     let totalVerifications = 0;
     for (const intern of interns) {
       try {
-        const verificationRef = doc(db, "verifications", intern.certificateId);
-        const verificationSnap = await getDoc(verificationRef);
+        const verificationSnap = await getDoc(doc(db, "verifications", intern.certificateId));
         if (verificationSnap.exists()) {
           totalVerifications += verificationSnap.data().verificationCount || 0;
         }
       } catch (error) {
-        console.warn('Error getting verification count for intern:', intern.id);
+        console.warn('Error getting verification count:', error);
       }
     }
 
@@ -305,7 +253,7 @@ export async function getDashboardStats(uid: string) {
       activeInternships,
     };
   } catch (error) {
-    console.error('Error getting dashboard stats:', error);
+    console.error('Error getting stats:', error);
     return {
       totalInterns: 0,
       generatedCerts: 0,
