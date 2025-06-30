@@ -195,7 +195,7 @@ export default function Dashboard() {
                           <div>
                             <h4 className="font-medium text-gray-900">{intern.fullName}</h4>
                             <p className="text-sm text-gray-600">{intern.domain}</p>
-                            <p className="text-xs text-gray-500">Generated {formatDate(intern.createdAt.toString())}</p>
+                            <p className="text-xs text-gray-500">Generated {formatDate(intern.startDate)} → {formatDate(intern.endDate)}</p>
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
