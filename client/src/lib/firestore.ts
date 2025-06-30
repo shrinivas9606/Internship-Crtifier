@@ -38,6 +38,21 @@ export async function saveUserSettings(settings: InsertUserSettings): Promise<vo
   }
   
   try {
+    const docRef = doc(db, "userSettings", settings.uid);
+    await setDoc(docRef, settings, { merge: true }); // merge: true allows partial updates
+  } catch (error) {
+    console.error('Error saving user settings:', error);
+    throw error;
+  }
+}
+
+// This is the original saveUserSettings function - keeping it for backward compatibility
+export async function _legacySaveUserSettings(settings: InsertUserSettings): Promise<void> {
+  if (!db) {
+    throw new Error('Firestore not initialized. Check Firebase configuration.');
+  }
+  
+  try {
     const userRef = doc(db, "userSettings", settings.uid);
     await setDoc(userRef, {
       ...settings,

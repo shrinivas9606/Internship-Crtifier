@@ -42,10 +42,19 @@ function AppRoutes() {
       {/* Protected Routes */}
       <Route path="/choose-template">
         <AuthGuard fallback={<Login />}>
-          {user && userSettings ? (
+          {user && userSettings ?(
             <Dashboard />
           ) : user ? (
             <ChooseTemplate />
+          ) : (
+            <Login />
+          )}
+        </AuthGuard>
+      </Route>
+      <Route path="/edit-template">
+        <AuthGuard fallback={<Login />}>
+          {user ? (
+            <ChooseTemplate isEditMode={true} />
           ) : (
             <Login />
           )}

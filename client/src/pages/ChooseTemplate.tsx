@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
-import { saveUserSettings, uploadFile } from "@/lib/firestore";
+import { saveUserSettings } from "@/lib/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,9 +9,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import type { InsertUserSettings } from "@shared/schema";
 
-export default function ChooseTemplate() {
+interface ChooseTemplateProps {
+  isEditMode?: boolean;
+}
+
+export default function ChooseTemplate({ isEditMode = false }: ChooseTemplateProps) {
   const [, setLocation] = useLocation();
-  const { user, signOut, refreshUserSettings } = useAuth();
+  const { user, userSettings, signOut, refreshUserSettings } = useAuth();
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -29,6 +33,18 @@ export default function ChooseTemplate() {
 
   const [uploading, setUploading] = useState(false);
 
+  // Load existing settings when in edit mode
+  useEffect(() => {
+    if (isEditMode && userSettings) {
+      setFormData({
+        companyName: userSettings.companyName || "",
+        supervisorName: userSettings.supervisorName || "",
+        ceoName: userSettings.ceoName || "",
+        selectedTemplate: userSettings.selectedTemplate || "modern",
+      });
+    }
+  }, [isEditMode, userSettings]);
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -40,6 +56,7 @@ export default function ChooseTemplate() {
   const handleSubmit = async () => {
     if (!user) return;
 
+    // Validate required fields
     if (!formData.companyName || !formData.supervisorName || !formData.ceoName) {
       toast({
         title: "Error",
@@ -49,7 +66,8 @@ export default function ChooseTemplate() {
       return;
     }
 
-    if (!files.companyLogo || !files.supervisorSignature || !files.ceoSignature) {
+    // In edit mode, files are optional (can keep existing ones)
+    if (!isEditMode && (!files.companyLogo || !files.supervisorSignature || !files.ceoSignature)) {
       toast({
         title: "Error",
         description: "Please upload all required files",
@@ -61,28 +79,21 @@ export default function ChooseTemplate() {
     setUploading(true);
 
     try {
-      toast({
-        title: "Processing...",
-        description: "Converting files to data URLs",
-      });
+      let logoUrl = userSettings?.companyLogo || "";
+      let supervisorSigUrl = userSettings?.supervisorSignature || "";
+      let ceoSigUrl = userSettings?.ceoSignature || "";
 
-      // Convert files to base64 data URLs (no Firebase Storage needed)
-      const convertToDataUrl = (file: File): Promise<string> => {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-      };
+      // Only process files that were actually uploaded
+      if (files.companyLogo) {
+        logoUrl = await convertToDataUrl(files.companyLogo);
+      }
+      if (files.supervisorSignature) {
+        supervisorSigUrl = await convertToDataUrl(files.supervisorSignature);
+      }
+      if (files.ceoSignature) {
+        ceoSigUrl = await convertToDataUrl(files.ceoSignature);
+      }
 
-      const [logoUrl, supervisorSigUrl, ceoSigUrl] = await Promise.all([
-        convertToDataUrl(files.companyLogo),
-        convertToDataUrl(files.supervisorSignature),
-        convertToDataUrl(files.ceoSignature),
-      ]);
-
-      // Save user settings
       const settings: InsertUserSettings = {
         uid: user.uid,
         companyName: formData.companyName,
@@ -100,25 +111,24 @@ export default function ChooseTemplate() {
 
       toast({
         title: "Success",
-        description: "Setup completed successfully",
+        description: isEditMode 
+          ? "Settings updated successfully" 
+          : "Setup completed successfully",
       });
 
-      // After successful setup, always redirect to dashboard
       setLocation("/dashboard");
     } catch (error: any) {
-      console.error('Setup error:', error);
+      console.error('Error saving settings:', error);
       
-      let errorMessage = "Failed to complete setup";
+      let errorMessage = "Failed to save settings";
       if (error.code === 'permission-denied') {
-        errorMessage = "Firestore permissions error. Please enable Firestore Database in test mode.";
-      } else if (error.message?.includes('Firestore')) {
-        errorMessage = "Firestore not configured. Please create a Firestore database in your Firebase project.";
+        errorMessage = "Firestore permissions error. Please check your database rules.";
       } else if (error.message) {
         errorMessage = error.message;
       }
 
       toast({
-        title: "Setup Error",
+        title: "Error",
         description: errorMessage,
         variant: "destructive",
       });
@@ -127,10 +137,19 @@ export default function ChooseTemplate() {
     }
   };
 
+  const convertToDataUrl = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const FileUpload = ({ 
     label, 
     field, 
-    accept = "image/*" 
+    accept = "image/*"
   }: { 
     label: string; 
     field: keyof typeof files; 
@@ -151,6 +170,19 @@ export default function ChooseTemplate() {
             <div>
               <i className="fas fa-check-circle text-green-500 text-2xl mb-2"></i>
               <p className="text-sm text-gray-600">{files[field]!.name}</p>
+            </div>
+          ) : isEditMode && userSettings?.[field === "companyLogo" ? "companyLogo" : 
+                                        field === "supervisorSignature" ? "supervisorSignature" : 
+                                        "ceoSignature"] ? (
+            <div>
+              <img 
+                src={userSettings[field === "companyLogo" ? "companyLogo" : 
+                                field === "supervisorSignature" ? "supervisorSignature" : 
+                                "ceoSignature"]} 
+                alt="Preview" 
+                className="h-16 mx-auto mb-2 object-contain"
+              />
+              <p className="text-sm text-gray-600">Click to change</p>
             </div>
           ) : (
             <div>
@@ -236,7 +268,6 @@ export default function ChooseTemplate() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
@@ -255,18 +286,20 @@ export default function ChooseTemplate() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Card className="shadow-lg">
-          {/* Progress Steps */}
           <div className="bg-gray-50 px-6 py-4 border-b">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-gray-900">Initial Setup</h2>
-              <div className="bg-primary-100 text-primary-800 px-3 py-1 rounded-full font-medium text-sm">
-                Step 1 of 2
-              </div>
+              <h2 className="text-2xl font-bold text-gray-900">
+                {isEditMode ? "Edit Certificate Settings" : "Initial Setup"}
+              </h2>
+              {!isEditMode && (
+                <div className="bg-primary-100 text-primary-800 px-3 py-1 rounded-full font-medium text-sm">
+                  Step 1 of 2
+                </div>
+              )}
             </div>
           </div>
 
           <CardContent className="p-6">
-            {/* Company Branding Section */}
             <div className="mb-8">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Company Branding</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -311,7 +344,6 @@ export default function ChooseTemplate() {
               </div>
             </div>
 
-            {/* Template Selection */}
             <div className="mb-8">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Choose Certificate Template</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -339,14 +371,25 @@ export default function ChooseTemplate() {
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="flex justify-end space-x-4">
+              <Button 
+                variant="outline" 
+                onClick={() => setLocation("/dashboard")}
+              >
+                Cancel
+              </Button>
               <Button 
                 onClick={handleSubmit} 
                 disabled={uploading}
                 className="px-6"
               >
-                {uploading ? "Setting up..." : "Complete Setup"}
+                {uploading 
+                  ? isEditMode 
+                    ? "Updating..." 
+                    : "Setting up..."
+                  : isEditMode 
+                    ? "Update Settings" 
+                    : "Complete Setup"}
               </Button>
             </div>
           </CardContent>

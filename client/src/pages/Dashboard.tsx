@@ -62,17 +62,8 @@ export default function Dashboard() {
       .slice(0, 2);
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 1) return "1 day ago";
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.ceil(diffDays / 7)} week${diffDays >= 14 ? "s" : ""} ago`;
-    return date.toLocaleDateString();
-  };
+  const formatDate = (date: any) =>
+  date?.seconds ? new Date(date.seconds * 1000).toLocaleDateString() : date;
 
   if (loading) {
     return (
@@ -157,7 +148,7 @@ export default function Dashboard() {
                   <Button className="w-full justify-start" variant="outline" onClick={() => setLocation("/bulk-import")}>
                     <Upload className="h-4 w-4 mr-2" /> Bulk Import CSV
                   </Button>
-                  <Button className="w-full justify-start" variant="outline" onClick={() => setLocation("/choose-template")}>
+                  <Button className="w-full justify-start" variant="outline" onClick={() => setLocation("/edit-template")}>
                     <i className="fas fa-cog mr-2"></i> Template Settings
                   </Button>
                 </div>
@@ -195,7 +186,7 @@ export default function Dashboard() {
                           <div>
                             <h4 className="font-medium text-gray-900">{intern.fullName}</h4>
                             <p className="text-sm text-gray-600">{intern.domain}</p>
-                            <p className="text-xs text-gray-500">Generated {formatDate(intern.startDate)} → {formatDate(intern.endDate)}</p>
+                            <p className="text-xs text-gray-500">{formatDate(intern.startDate)} → {formatDate(intern.endDate)}</p>
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
